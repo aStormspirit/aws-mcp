@@ -2,6 +2,9 @@ name = "aws-mcp"
 main = "src/index.ts"
 compatibility_date = "2024-09-01"
 
+# Expose the worker on its public *.workers.dev URL.
+workers_dev = true
+
 # No KV / DB / bindings needed — credentials are provided as secrets (see README).
 #
 # Set these with `npx wrangler secret put <NAME>` (or in the Cloudflare
