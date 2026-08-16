@@ -45,7 +45,7 @@ function authorized(request: Request, env: Env): boolean {
   return url.searchParams.get("token") === env.MCP_AUTH_TOKEN;
 }
 
-async function handleRpc(req: JsonRpcRequest, env: Env): Promise<object | null> {
+async function handleRpc(req: JsonRpcRequest, env: Env, authed: boolean): Promise<object | null> {
   const { id, method, params } = req;
 
   switch (method) {
@@ -73,6 +73,15 @@ async function handleRpc(req: JsonRpcRequest, env: Env): Promise<object | null> 
       });
 
     case "tools/call": {
+      if (!authed) {
+        return rpcResult(id, {
+          content: [{
+            type: "text",
+            text: "Unauthorized: this server requires a token. Add ?token=<MCP_AUTH_TOKEN> to the connector URL (or send an Authorization: Bearer <MCP_AUTH_TOKEN> header).",
+          }],
+          isError: true,
+        });
+      }
       const name = params?.name;
       const args = params?.arguments ?? {};
       const tool = TOOL_MAP.get(name);
@@ -129,22 +138,30 @@ export default {
           authRequired: Boolean(env.MCP_AUTH_TOKEN),
         });
       }
-      // Some MCP clients open a GET for a server->client stream; we don't push.
-      if (request.headers.get("Accept")?.includes("text/event-stream")) {
-        return new Response("Method Not Allowed", { status: 405, headers: CORS_HEADERS });
+      if (url.pathname === "/") {
+        // Some MCP clients open a GET for a server->client stream; we don't push.
+        if (request.headers.get("Accept")?.includes("text/event-stream")) {
+          return new Response("Method Not Allowed", { status: 405, headers: CORS_HEADERS });
+        }
+        return new Response(LANDING_HTML, {
+          headers: { "Content-Type": "text/html; charset=utf-8", ...CORS_HEADERS },
+        });
       }
-      return new Response(LANDING_HTML, {
-        headers: { "Content-Type": "text/html; charset=utf-8", ...CORS_HEADERS },
-      });
+      // Anything else (including /.well-known/oauth-* discovery probes) must be a
+      // hard 404 so MCP clients don't mistake this for an OAuth-protected server
+      // and try to run a sign-in / dynamic-client-registration flow we don't have.
+      return new Response("Not Found", { status: 404, headers: CORS_HEADERS });
     }
 
     if (request.method !== "POST") {
       return new Response("Method Not Allowed", { status: 405, headers: CORS_HEADERS });
     }
 
-    if (!authorized(request, env)) {
-      return jsonResponse(rpcError(null, -32001, "Unauthorized: missing or invalid bearer token"), 401);
-    }
+    // We deliberately do NOT 401 the whole request: MCP clients treat a 401 on
+    // the endpoint as "start an OAuth sign-in flow", which this server doesn't
+    // implement. Instead we let the handshake (initialize/tools/list) succeed
+    // anonymously and enforce the token only when a tool is actually invoked.
+    const authed = authorized(request, env);
 
     let payload: unknown;
     try {
@@ -157,13 +174,13 @@ export default {
     if (Array.isArray(payload)) {
       const responses = [];
       for (const item of payload) {
-        const r = await handleRpc(item as JsonRpcRequest, env);
+        const r = await handleRpc(item as JsonRpcRequest, env, authed);
         if (r) responses.push(r);
       }
       return responses.length ? jsonResponse(responses) : new Response(null, { status: 202, headers: CORS_HEADERS });
     }
 
-    const result = await handleRpc(payload as JsonRpcRequest, env);
+    const result = await handleRpc(payload as JsonRpcRequest, env, authed);
     if (!result) return new Response(null, { status: 202, headers: CORS_HEADERS });
     return jsonResponse(result);
   },
