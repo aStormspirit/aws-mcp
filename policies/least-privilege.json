@@ -24,7 +24,17 @@
       "Effect": "Allow",
       "Action": [
         "ec2:DescribeInstances",
-        "ec2:DescribeRegions"
+        "ec2:DescribeRegions",
+        "ec2:DescribeVolumes",
+        "ec2:DescribeAddresses"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "McpRdsReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "rds:DescribeDBInstances"
       ],
       "Resource": "*"
     },
@@ -40,7 +50,19 @@
       "Sid": "McpIamReadOnly",
       "Effect": "Allow",
       "Action": [
-        "iam:ListUsers"
+        "iam:ListUsers",
+        "iam:ListAttachedUserPolicies"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "McpCostExplorerReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "ce:GetCostAndUsage",
+        "ce:GetCostForecast",
+        "ce:GetDimensionValues",
+        "ce:GetTags"
       ],
       "Resource": "*"
     }
