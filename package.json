@@ -1,0 +1,17 @@
+{
+  "name": "aws-mcp",
+  "version": "1.0.0",
+  "description": "Remote MCP server on Cloudflare Workers that executes AWS API commands (SigV4-signed) with your own credentials.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "start": "wrangler dev"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240821.1",
+    "typescript": "^5.5.4",
+    "wrangler": "^3.78.0"
+  }
+}

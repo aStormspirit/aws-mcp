@@ -1,0 +1,17 @@
+name = "aws-mcp"
+main = "src/index.ts"
+compatibility_date = "2024-09-01"
+
+# No KV / DB / bindings needed — credentials are provided as secrets (see README).
+#
+# Set these with `npx wrangler secret put <NAME>` (or in the Cloudflare
+# dashboard: Workers & Pages > aws-mcp > Settings > Variables and Secrets):
+#
+#   MCP_AUTH_TOKEN        (required) bearer token clients must send to use the server
+#   AWS_ACCESS_KEY_ID     (required) your AWS access key id
+#   AWS_SECRET_ACCESS_KEY (required) your AWS secret access key
+#   AWS_SESSION_TOKEN     (optional) only for temporary/STS credentials
+#
+# Non-secret default region can live here:
+[vars]
+AWS_DEFAULT_REGION = "us-east-1"
